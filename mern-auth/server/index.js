@@ -9,32 +9,32 @@ const UserModel = require("./model/User");
 
 dotenv.config();
 const app = express();
+
 app.use(express.json());
 app.use(cors({
-    origin: 'http://localhost:3000', 
+    origin: 'http://localhost:3000',
     credentials: true
 }));
 
-
-mongoose.connect("mongodb+srv://zac:Z@c29162112@cluster0.wiylsot.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+mongoose.connect(process.env.MONGO_URI)
     .then(() => console.log('Connected to MongoDB'))
     .catch(err => console.error('Failed to connect to MongoDB', err));
-
 
 app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: true,
     store: MongoStore.create({
-        mongoUrl: "mongodb+srv://zac:Z@c29162112@cluster0.wiylsot.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+        mongoUrl: process.env.MONGO_URI
     }),
     cookie: { maxAge: 24 * 60 * 60 * 1000 } // 1 day
 }));
 
-app.listen(process.env.PORT, () => {
-    console.log(`Server is running on port ${process.env.PORT}`);
-});
+const port = process.env.PORT || 3001;
 
+app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+});
 
 app.post("/signup", async (req, res) => {
     try {
@@ -52,8 +52,6 @@ app.post("/signup", async (req, res) => {
     }
 });
 
-
-
 app.post("/login", async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -62,20 +60,17 @@ app.post("/login", async (req, res) => {
             const passwordMatch = await bcrypt.compare(password, user.password);
             if (passwordMatch) {
                 req.session.user = { id: user._id, name: user.name, email: user.email };
-                // console.log(email);
-                console.log(user.name);
                 res.json("Success");
             } else {
                 res.status(401).json("Password doesn't match");
             }
         } else {
-            res.status(404).json("No Records found");
+            res.status(404).json("No records found");
         }
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
-
 
 app.post("/logout", (req, res) => {
     if (req.session) {
